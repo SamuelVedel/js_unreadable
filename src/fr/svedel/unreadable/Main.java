@@ -76,7 +76,7 @@ public class Main {
 	
 	// ---- fin des fonctions pour le remplacement des arguments
 	
-	public static String removeBigComments(String sourceCode, Pattern patt) {
+	/*public static String removeBigComments(String sourceCode, Pattern patt) {
 		Matcher match = patt.matcher(sourceCode);
 		String newCode = sourceCode;
 		while (match.find()) {
@@ -87,7 +87,7 @@ public class Main {
 			match = patt.matcher(newCode);
 		}
 		return newCode;
-	}
+		}*/
 	
 	public static void main(String[] args) {
 		if (args.length == 0) {
@@ -124,9 +124,10 @@ public class Main {
 		content = content.replaceAll("\n", "");
 		content = content.replaceAll("\t", " ");
 		content = content.replaceAll(" +", " ");
+		content = content.replaceAll("/\\*[^\\/]*\\*/", "");
 		
-		Pattern bigCommentsPattern = Pattern.compile("/\\*[^\\/]*\\*/");
-		content = removeBigComments(content, bigCommentsPattern);
+		//Pattern bigCommentsPattern = Pattern.compile("/\\*[^\\/]*\\*/");
+		//content = removeBigComments(content, bigCommentsPattern);
 		
 		if (out == null) {
 			System.out.println(content);
