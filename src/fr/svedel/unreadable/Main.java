@@ -1,6 +1,5 @@
 package fr.svedel.unreadable;
 
-import java.util.Random;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -103,7 +102,7 @@ public class Main {
 			out = null;
 		}
 		
-		String content = ReadWrite.readFile(args[0]);
+		String content = ReadWrite.readFile(in);
 		content = content.replaceAll("//.*\n", "");
 		
 		// let/const
