@@ -17,11 +17,11 @@ public class ReadWrite {
 													   new FileInputStream(filePath),
 													   "utf-8"));
 			
-			String line;
-			while ((line = reader.readLine()) != null) {
+			while ((reader.readLine()) != null) {
 				++nLine;
 			}
 			
+			reader.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -40,6 +40,7 @@ public class ReadWrite {
 				++i;
 			}
 			
+			reader.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
