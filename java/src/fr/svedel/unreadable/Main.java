@@ -103,27 +103,27 @@ public class Main {
 		}
 		
 		String content = ReadWrite.readFile(in);
-		content = content.replaceAll("//.*\n", "");
+		content = content.replaceAll("//[^\\/\n]*\n", "\n");
 		
 		// let/const
 		Pattern varPattern = Pattern.compile("\\W((let)|(const)) +(?<name>[a-zA-Z_]\\w*)\\W");
 		content = replaceAllName(content, varPattern);
 		
-		// args
-		//Pattern argPattern = Pattern.compile("function +[a-zA-Z_]\\w* +\\( *([a-zA-Z_]\\w* *, *)*"
-		//									 +"(?<name>[a-zA-Z_]\\w*) *([a-zA-Z_]\\w* *, *)*\\)");
-		Pattern argPattern = Pattern.compile("function +([a-zA-Z_]\\w*)? *\\((?<args> *([a-zA-Z_]\\w* *, *)*"
-											 +"[a-zA-Z_]\\w* *)\\)");
-		content = replaceAllArgs(content, argPattern);
+		// // args
+		// //Pattern argPattern = Pattern.compile("function +[a-zA-Z_]\\w* +\\( *([a-zA-Z_]\\w* *, *)*"
+		// //									 +"(?<name>[a-zA-Z_]\\w*) *([a-zA-Z_]\\w* *, *)*\\)");
+		// Pattern argPattern = Pattern.compile("function +([a-zA-Z_]\\w*)? *\\((?<args> *([a-zA-Z_]\\w* *, *)*"
+		// 									 +"[a-zA-Z_]\\w* *)\\)");
+		// content = replaceAllArgs(content, argPattern);
 		
-		// function
-		Pattern funcPattern = Pattern.compile("function +(?<name>[a-zA-Z_]\\w*) *\\(");
-		content = replaceAllName(content, funcPattern, NameToReplace.FUNCTION_SCOPE);
+		// // function
+		// Pattern funcPattern = Pattern.compile("function +(?<name>[a-zA-Z_]\\w*) *\\(");
+		// content = replaceAllName(content, funcPattern, NameToReplace.FUNCTION_SCOPE);
 		
-		content = content.replaceAll("\n", "");
-		content = content.replaceAll("\t", " ");
-		content = content.replaceAll(" +", " ");
-		content = content.replaceAll("/\\*[^\\/]*\\*/", "");
+		// content = content.replaceAll("\n", "");
+		// content = content.replaceAll("\t", " ");
+		// content = content.replaceAll(" +", " ");
+		// content = content.replaceAll("/\\*[^\\/]*\\*/", "");
 		
 		//Pattern bigCommentsPattern = Pattern.compile("/\\*[^\\/]*\\*/");
 		//content = removeBigComments(content, bigCommentsPattern);

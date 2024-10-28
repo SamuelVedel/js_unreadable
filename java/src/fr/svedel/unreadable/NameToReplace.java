@@ -124,6 +124,7 @@ public class NameToReplace {
 				break;
 			}
 		}
+		start = 0; // js c'est le farwest
 		end = sourceCode.length();
 	}
 	
@@ -137,7 +138,7 @@ public class NameToReplace {
 	public String replace() {
 		String newString = sourceCode.substring(0, start);
 		int i = start;
-		Matcher match = Pattern.compile("[^a-zA-Z_1-9\\.](?<call>"+name+")\\W").matcher(sourceCode);
+		Matcher match = Pattern.compile("[^a-zA-Z_1-9\\.#\"](?<call>"+name+")\\W").matcher(sourceCode);
 		while (match.find()) {
 			int st = match.start("call");
 			int en = match.end("call");
