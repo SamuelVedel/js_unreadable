@@ -317,7 +317,11 @@ id : ID_LET {$$ = $1;}
    | id ID_CLS {$$ = concat_two($1, $2);}
    | id ID_CLSP {$$ = concat_two($1, $2);}
 
-fct_call : exp LP args RP {
+fct_call : id LP args RP {
+    char *args = concat_around("(", $3, ")");
+    $$ = concat_two($1, args);
+ }
+         | fct_call LP args RP {
     char *args = concat_around("(", $3, ")");
     $$ = concat_two($1, args);
  }
