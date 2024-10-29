@@ -200,6 +200,7 @@ XOR_EQ BOR_EQ BAND_EQ LSHIFT_EQ RSHIFT_EQ
 BEQ BBEQ NEQ NNEQ GT LT GE LE NEG
 PLUS MINUS MULT POW DIV OR AND XOR BOR BAND LSHIFT RSHIFT
 IF ELSE FOR SWITCH CASE WHILE DO
+INSTANCEOF
 
 %left EQ PLUS_EQ MINUS_EQ POW_EQ MULT_EQ DIV_EQ PERC_EQ LSHIFT_EQ RSHIFT_EQ
 AND_EQ XOR_EQ OR_EQ BAND_EQ BOR_EQ QUESTION TDOTS FCT_ARROW
@@ -211,7 +212,7 @@ AND_EQ XOR_EQ OR_EQ BAND_EQ BOR_EQ QUESTION TDOTS FCT_ARROW
 %left AND
 
 %left BEQ NEQ BBEQ NNEQ
-%left LT LE GT GE
+%left LT LE GT GE INSTANCEOF
 %left RSHIFT LSHIFT
 
 %left PLUS MINUS
@@ -224,7 +225,7 @@ AND_EQ XOR_EQ OR_EQ BAND_EQ BOR_EQ QUESTION TDOTS FCT_ARROW
 
 %left LP LH
 
-%type <string_value> exp id fct_call tab_call tab_def affect eq let
+%type <string_value> exp multi_exp id fct_call tab_call tab_def affect eq let
 fct_def proper_fct_def args_def args return loop if else for
 for_p1 for_p2 for_p3 inst smc_inst inst_suite while do_while
 // switch
@@ -261,32 +262,7 @@ smc_inst : exp SMC {$$ = concat_right($1, ";");}
 inst_suite : inst_suite inst {$$ = concat_two($1, $2);}
            | inst {$$ = $1;}
 
-exp : exp PLUS exp {$$ = concat_mid($1, "+", $3);}
-    | exp MINUS exp {$$ = concat_mid($1, "-", $3);}
-    | exp MULT exp {$$ = concat_mid($1, "*", $3);}
-    | exp POW exp {$$ = concat_mid($1, "**", $3);}
-    | exp DIV exp {$$ = concat_mid($1, "/", $3);}
-    | exp OR exp {$$ = concat_mid($1, "|", $3);}
-    | exp AND exp {$$ = concat_mid($1, "&", $3);}
-    | exp XOR exp {$$ = concat_mid($1, "^", $3);}
-    | exp BOR exp {$$ = concat_mid($1, "||", $3);}
-    | exp BAND exp {$$ = concat_mid($1, "&&", $3);}
-    | exp LSHIFT exp {$$ = concat_mid($1, "<<", $3);}
-    | exp RSHIFT exp {$$ = concat_mid($1, ">>", $3);}
-    | exp BEQ exp {$$ = concat_mid($1, " == ", $3);}
-    | exp BBEQ exp {$$ = concat_mid($1, " === ", $3);}
-    | exp NEQ exp {$$ = concat_mid($1, " != ", $3);}
-    | exp NNEQ exp {$$ = concat_mid($1, " !== ", $3);}
-    | exp GT exp {$$ = concat_mid($1, " > ", $3);}
-    | exp LT exp {$$ = concat_mid($1, " < ", $3);}
-    | exp GE exp {$$ = concat_mid($1, " >= ", $3);}
-    | exp LE exp {$$ = concat_mid($1, " <= ", $3);}
-    | exp PERC exp {$$ = concat_mid($1, "%", $3);}
-    | NEG exp {$$ = concat_left("!", $2);}
-    | MINUS exp {$$ = concat_left("-", $2);} %prec NEG
-    | PLUS exp {$$ = concat_left("+", $2);} %prec NEG
-    | LP exp RP {$$ = concat_around("(", $2, ")");}
-    | affect {$$ = $1;}
+exp : affect {$$ = $1;}
     | id {$$ = $1;}
     | CST {$$ = $1;}
     | STR {$$ = $1;};
@@ -294,7 +270,35 @@ exp : exp PLUS exp {$$ = concat_mid($1, "+", $3);}
     | fct_def {$$ = $1;}
     | tab_call {$$ = $1;}
     | tab_def {$$ = $1;}
-    | exp QUESTION exp TDOTS exp {
+    | multi_exp {$$ = $1;}
+
+multi_exp : exp PLUS exp {$$ = concat_mid($1, "+", $3);}
+          | exp MINUS exp {$$ = concat_mid($1, "-", $3);}
+          | exp MULT exp {$$ = concat_mid($1, "*", $3);}
+          | exp POW exp {$$ = concat_mid($1, "**", $3);}
+          | exp DIV exp {$$ = concat_mid($1, "/", $3);}
+          | exp OR exp {$$ = concat_mid($1, "|", $3);}
+          | exp AND exp {$$ = concat_mid($1, "&", $3);}
+          | exp XOR exp {$$ = concat_mid($1, "^", $3);}
+          | exp BOR exp {$$ = concat_mid($1, "||", $3);}
+          | exp BAND exp {$$ = concat_mid($1, "&&", $3);}
+          | exp LSHIFT exp {$$ = concat_mid($1, "<<", $3);}
+          | exp RSHIFT exp {$$ = concat_mid($1, ">>", $3);}
+          | exp BEQ exp {$$ = concat_mid($1, " == ", $3);}
+          | exp BBEQ exp {$$ = concat_mid($1, " === ", $3);}
+          | exp NEQ exp {$$ = concat_mid($1, " != ", $3);}
+          | exp NNEQ exp {$$ = concat_mid($1, " !== ", $3);}
+          | exp GT exp {$$ = concat_mid($1, " > ", $3);}
+          | exp LT exp {$$ = concat_mid($1, " < ", $3);}
+          | exp GE exp {$$ = concat_mid($1, " >= ", $3);}
+          | exp LE exp {$$ = concat_mid($1, " <= ", $3);}
+          | exp INSTANCEOF exp {$$ = concat_mid($1, " instanceof ", $3);}
+          | exp PERC exp {$$ = concat_mid($1, "%", $3);}
+          | NEG exp {$$ = concat_left("!", $2);}
+          | MINUS exp {$$ = concat_left("-", $2);} %prec NEG
+          | PLUS exp {$$ = concat_left("+", $2);} %prec NEG
+          | LP multi_exp RP {$$ = concat_around("(", $2, ")");}
+          | exp QUESTION exp TDOTS exp {
     char *inter1 = concat($1, "? ");
     char *inter2 = concat(inter1, $3);
     char *inter3 = concat(inter2, ": ");

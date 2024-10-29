@@ -59,6 +59,7 @@ hexa [0-9a-fA-F]
 "<" {return(LT);}
 ">=" {return(GE);}
 "<=" {return(LE);}
+"instanceof" {return(INSTANCEOF);}
 
 "+" {return(PLUS);}
 "-" {return(MINUS);}
@@ -89,7 +90,7 @@ hexa [0-9a-fA-F]
 [\n] {;}
 
 (["][^"]*["])|(['][^']*[']) {yylval.string_value = strdup(yytext); /*ptr_stack_add(yylval.string_value);*/ return(STR);}
-({digit}+)|(0x{hexa}+) {yylval.string_value = strdup(yytext); /*ptr_stack_add(yylval.string_value);*/ return(CST);}
+({digit}+)|(0x{hexa}+)|({digit}+)n {yylval.string_value = strdup(yytext); /*ptr_stack_add(yylval.string_value);*/ return(CST);}
 \.[ ]*#{alpha}+ {yylval.string_value = strdup(yytext); /*ptr_stack_add(yylval.string_value);*/ return(ID_CLSP);}
 \.[ ]*{alpha_first}{alpha}* {yylval.string_value = strdup(yytext); /*ptr_stack_add(yylval.string_value);*/ return(ID_CLS);}
 {alpha_first}{alpha}* {yylval.string_value = strdup(yytext); /*ptr_stack_add(yylval.string_value);*/ return(ID_LET);}
