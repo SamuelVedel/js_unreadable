@@ -1,5 +1,6 @@
                 /* DECLARATIONS */
 %{
+
 /* insertion de code verbatim en entête de tous les fichiers C généré par LEX ou YACC */
 
 #include <stdlib.h>
@@ -189,17 +190,18 @@ int getRegister(char* key){
 /* TOKENS */
 
 //%token <int_value> CST
-%token <string_value> ID ID_CLSP ID_CLS ID_LET CST STR
+%token <string_value> ID ID_PRIV CST STR
 
 %token LET CONST CMM SMC TDOTS QUESTION
 LB RB LP RP LH RH
-CLASS CONSTRUCTOR STATIC THIS NEW // pas encore implémenté
+CLASS CONSTRUCTOR STATIC THIS NEW DOT // pas encore implémenté
+NUL UNDEFINED
 FUNCTION RETURN CONTINUE BREAK FCT_ARROW
 EQ PLUS_PLUS MINUS_MINUS PLUS_EQ MINUS_EQ MULT_EQ POW_EQ DIV_EQ OR_EQ AND_EQ
 XOR_EQ BOR_EQ BAND_EQ LSHIFT_EQ RSHIFT_EQ
 BEQ BBEQ NEQ NNEQ GT LT GE LE NEG
 PLUS MINUS MULT POW DIV OR AND XOR BOR BAND LSHIFT RSHIFT
-IF ELSE FOR SWITCH CASE WHILE DO
+IF ELSE FOR SWITCH CASE DEFAULT WHILE DO
 INSTANCEOF
 
 %left EQ PLUS_EQ MINUS_EQ POW_EQ MULT_EQ DIV_EQ PERC_EQ LSHIFT_EQ RSHIFT_EQ
@@ -225,10 +227,13 @@ AND_EQ XOR_EQ OR_EQ BAND_EQ BOR_EQ QUESTION TDOTS FCT_ARROW
 
 %left LP LH
 
-%type <string_value> exp multi_exp id fct_call tab_call tab_def affect eq let
+%type <string_value> exp multi_exp id fct_call tab_call tab_def dico_def affect eq let
+dico_args pre_id
 fct_def proper_fct_def args_def args return loop if else for
 for_p1 for_p2 for_p3 inst smc_inst inst_suite while do_while
-// switch
+class attr_def constructor meth_def
+new
+switch case
 %type <no_value> axiome
 
 /* START SYMBOL */
@@ -238,8 +243,11 @@ for_p1 for_p2 for_p3 inst smc_inst inst_suite while do_while
 %{ 
 #include <stdio.h>
 #include <ctype.h>
-  
+
+extern int yylineno;
 %}
+
+%locations
 
 %% 
 
@@ -251,7 +259,7 @@ axiome : axiome inst {printf("%s\n", $2); free($2);}
 inst : smc_inst {$$ = $1;}
      | proper_fct_def {$$ = $1;}
      | loop {$$ = $1;}
-//     | class {}
+     | class {$$ =$1;}
 
 smc_inst : exp SMC {$$ = concat_right($1, ";");}
          | let SMC {$$ = concat_right($1, ";");}
@@ -260,16 +268,19 @@ smc_inst : exp SMC {$$ = concat_right($1, ";");}
          | BREAK SMC {$$ = strdup("break;");}
 
 inst_suite : inst_suite inst {$$ = concat_two($1, $2);}
-           | inst {$$ = $1;}
+//           | inst {$$ = $1;}
+           | {strdup("");}
 
-exp : affect {$$ = $1;}
-    | id {$$ = $1;}
+exp : id {$$ = $1;}
     | CST {$$ = $1;}
-    | STR {$$ = $1;};
+    | NUL {$$ = strdup("null");}
+    | UNDEFINED {$$ = strdup("undefined");}
+    | new {$$ = $1;}
     | fct_call {$$ = $1;}
     | fct_def {$$ = $1;}
     | tab_call {$$ = $1;}
     | tab_def {$$ = $1;}
+    | dico_def {$$ = $1;}
     | multi_exp {$$ = $1;}
 
 multi_exp : exp PLUS exp {$$ = concat_mid($1, "+", $3);}
@@ -298,6 +309,8 @@ multi_exp : exp PLUS exp {$$ = concat_mid($1, "+", $3);}
           | MINUS exp {$$ = concat_left("-", $2);} %prec NEG
           | PLUS exp {$$ = concat_left("+", $2);} %prec NEG
           | LP multi_exp RP {$$ = concat_around("(", $2, ")");}
+          | affect {$$ = $1;}
+          | STR {$$ = $1;};
           | exp QUESTION exp TDOTS exp {
     char *inter1 = concat($1, "? ");
     char *inter2 = concat(inter1, $3);
@@ -312,28 +325,53 @@ multi_exp : exp PLUS exp {$$ = concat_mid($1, "+", $3);}
     $$ = result;
  }
 
-id : ID_LET {$$ = $1;}
+id : ID {$$ = $1;}
    | THIS {$$ = strdup("this");}
-   | id ID_CLS {$$ = concat_two($1, $2);}
-   | id ID_CLSP {$$ = concat_two($1, $2);}
+   | pre_id DOT ID {$$ = concat_mid($1, ".", $3);}
+   | pre_id DOT ID_PRIV {$$ = concat_mid($1, ".", $3);}
+
+pre_id : id {$$ = $1;}
+       | tab_call {$$ = $1;}
+       | fct_call {$$ = $1;}
 
 fct_call : id LP args RP {
     char *args = concat_around("(", $3, ")");
     $$ = concat_two($1, args);
- }
+}
          | fct_call LP args RP {
     char *args = concat_around("(", $3, ")");
     $$ = concat_two($1, args);
- }
+}
+         | tab_call LP args RP {
+    char *args = concat_around("(", $3, ")");
+    $$ = concat_two($1, args);
+}
 
-tab_call : exp LH exp RH {
+tab_call : id LH exp RH {
     char *index = concat_around("[", $3, "]");
     $$ = concat_two($1, index);
- }
+}
+         | fct_call LH exp RH {
+    char *index = concat_around("[", $3, "]");
+    $$ = concat_two($1, index);
+}
+         | tab_call LH exp RH {
+    char *index = concat_around("[", $3, "]");
+    $$ = concat_two($1, index);
+}
 
 tab_def : LH args RH {$$ = concat_around("[", $2, "]");}
 
+dico_def : LB dico_args RB {$$ = concat_around("{", $2, "}");}
+
+dico_args : exp TDOTS exp CMM dico_args {
+    $$ = concat_mid(concat_mid($1, ":", $3), ", ", $5);
+}
+          | exp TDOTS exp {$$ = concat_mid($1, ":", $3);}
+          | {$$ = strdup("");}
+
 affect : id eq exp {$$ = concat_two($1, concat_two($2, $3));} %prec EQ
+       | tab_call eq exp {$$ = concat_two($1, concat_two($2, $3));} %prec EQ
        | id PLUS_PLUS {$$ = concat_right($1, "++");}
        | PLUS_PLUS id {$$ = concat_left("++", $2);}  %prec NEG
        | id MINUS_MINUS {$$ = concat_right($1, "--");}
@@ -354,10 +392,10 @@ eq : EQ {$$ = strdup(" = ");}
    | LSHIFT_EQ {$$ = strdup(" <<= ");}
    | RSHIFT_EQ {$$ = strdup(" >>= ");}
 
-let : LET ID_LET {$$ = concat_left("let ", $2);}
-    | LET ID_LET EQ exp {$$ = concat_left("let ", concat_mid($2, " = ", $4));}
-    | CONST ID_LET {$$ = concat_left("const ", $2);}
-    | CONST ID_LET EQ exp {$$ = concat_left("const ", concat_mid($2, " = ", $4));}
+let : LET ID {$$ = concat_left("let ", $2);}
+    | LET ID EQ exp {$$ = concat_left("let ", concat_mid($2, " = ", $4));}
+    | CONST ID {$$ = concat_left("const ", $2);}
+    | CONST ID EQ exp {$$ = concat_left("const ", concat_mid($2, " = ", $4));}
 
 fct_def : FUNCTION LP args_def RP LB inst_suite RB {
     char *args = concat_around("(", $3, ")");
@@ -377,15 +415,15 @@ fct_def : FUNCTION LP args_def RP LB inst_suite RB {
 }
 //        | proper_fct_def {}
 
-proper_fct_def : FUNCTION ID_LET LP args_def RP LB inst_suite RB {
+proper_fct_def : FUNCTION ID LP args_def RP LB inst_suite RB {
     char *args = concat_around("(", $4, ")");
     char *content = concat_around(" {", $7, "}");
     char *head = concat_left("function ", $2);
     $$ = concat_two(head, concat_two(args, content));
 }
 
-args_def : ID_LET CMM args_def {$$ = concat_mid($1, ", ", $3);}
-         | ID_LET {$$ = $1;}
+args_def : ID CMM args_def {$$ = concat_mid($1, ", ", $3);}
+         | ID {$$ = $1;}
          | {$$ = strdup("");}
 
 args : exp CMM args {$$ = concat_mid($1, ", ", $3);}
@@ -396,7 +434,7 @@ return : RETURN exp {$$ = concat_left("return ", $2);}
 
 loop : if {$$ = $1;}
      | for {$$ = $1;}
-//     | switch {}
+     | switch {$$ = $1;}
      | while {$$ = $1;}
      | do_while {$$ = $1;}
 
@@ -411,8 +449,9 @@ if : IF LP exp RP LB inst_suite RB else {
    $$ = concat_left("if ", concat_two(cond, back));
 }
 
-else : ELSE LB inst_suite RB {}
+else : ELSE LB inst_suite RB {$$ = concat_left("else ", concat_around("{", $3, "}"));}
      | ELSE smc_inst {$$ = concat_left("else ", $2);}
+     | ELSE if {$$ = concat_left("else ", $2);}
      | {$$ = strdup("");}
 
 for : FOR LP for_p1 SMC for_p2 SMC for_p3 RP LB inst_suite RB {
@@ -422,6 +461,13 @@ for : FOR LP for_p1 SMC for_p2 SMC for_p3 RP LB inst_suite RB {
     char *parts = concat_two(p1, concat_two(p2, p3));
     char *content = concat_around(" {", $10, "}");
     $$ = concat_left("for ", concat_two(parts, content));
+}
+    | FOR LP for_p1 SMC for_p2 SMC for_p3 RP smc_inst {
+    char *p1 = concat_around("(", $3, "; ");
+    char *p2 = concat_right($5, "; ");
+    char *p3 = concat_right($7, ")");
+    char *parts = concat_two(p1, concat_two(p2, p3));
+    $$ = concat_left("for ", concat_two(parts, $9));
 }
 
 for_p1 : let {$$ = $1;}
@@ -439,6 +485,10 @@ while : WHILE LP exp RP LB inst_suite RB {
     char *content = concat_around(" {", $6, "}");
     $$ =  concat_left("while ", concat_two(cond, content));
 }
+      | WHILE LP exp RP smc_inst {
+    char *cond = concat_around("(", $3, ")");
+    $$ =  concat_left("while ", concat_two(cond, $5));
+}
 
 do_while : DO LB inst_suite RB WHILE LP exp RP {
     char *content = concat_around("{", $3, "} ");
@@ -448,18 +498,101 @@ do_while : DO LB inst_suite RB WHILE LP exp RP {
     $$ = concat_two(do_part, while_part);
 }
 
+switch : SWITCH LP exp RP LB case RB {
+    char *par = concat_around("(", $3, ")");
+    char *content = concat_around(" {", $6, "}");
+    $$ = concat_left("switch", concat_two(par, content));
+}
+
+case : case CASE CST TDOTS inst_suite {
+    char *start = concat_left("case ", $3);
+    char *end = concat_left(": ", $5);
+    $$ = concat_two($1, concat_two(start, end));
+}
+     | case DEFAULT CST TDOTS inst_suite {
+    char *start = concat_left("default ", $3);
+    char *end = concat_left(": ", $5);
+    $$ = concat_two($1, concat_two(start, end));
+}
+     | {$$ = strdup("");}
+
+class : CLASS ID LB attr_def constructor meth_def RB {
+    char *start = concat_around("class ", $2, " {");
+    char *middle = concat_two($4, $5);
+    char *end = concat_right($6, "}");
+    $$ = concat_two(start, concat_two(middle, end));
+}
+/*     | CLASS ID LB attr_def meth_def RB {
+    char *start = concat_left("class ", $2);
+    char *content = concat_two($4, $5);
+    $$ = concat_two(start, concat_around(" {", content, "}"));
+}*/
+
+attr_def : attr_def ID SMC {$$ = concat_two($1, concat_right($2, ";"));}
+         | attr_def ID_PRIV SMC {$$ = concat_two($1, concat_right($2, ";"));}
+         | attr_def ID EQ exp SMC {
+    char *inter1 = concat_two($1, $2);
+    char *inter2 = concat_around(" = ", $4, ";");
+    $$ = concat_two(inter1, inter2);
+}
+         | attr_def ID_PRIV EQ exp SMC {
+    char *inter1 = concat_two($1, $2);
+    char *inter2 = concat_around(" = ", $4, ";");
+    $$ = concat_two(inter1, inter2);
+}
+         | {$$ = strdup("");}
+
+constructor : CONSTRUCTOR LP args_def RP LB inst_suite RB {
+    char *args = concat_around("(", $3, ")");
+    char *content = concat_around(" {", $6, "}");
+    $$ = concat_left("constructor", concat_two(args, content));
+}
+
+meth_def : meth_def ID LP args_def RP LB inst_suite RB {
+    char *start = concat_two($1, $2);
+    char *args = concat_around("(", $4, ")");
+    char *content = concat_around(" {", $7, "}");
+    $$ = concat_two(start, concat_two(args, content));
+}
+         | meth_def STATIC ID LP args_def RP LB inst_suite RB {
+    char *start = concat_two($1, concat_left("static ", $3));
+    char *args = concat_around("(", $5, ")");
+    char *content = concat_around(" {", $8, "}");
+    $$ = concat_two(start, concat_two(args, content));
+}
+         | meth_def ID_PRIV LP args_def RP LB inst_suite RB {
+    char *start = concat_two($1, $2);
+    char *args = concat_around("(", $4, ")");
+    char *content = concat_around(" {", $7, "}");
+    $$ = concat_two(start, concat_two(args, content));
+}
+         | meth_def STATIC ID_PRIV LP args_def RP LB inst_suite RB {
+    char *start = concat_two($1, concat_left("static ", $3));
+    char *args = concat_around("(", $5, ")");
+    char *content = concat_around(" {", $8, "}");
+    $$ = concat_two(start, concat_two(args, content));
+}
+         | {$$ = strdup("");}
+
+new : NEW id LP args RP {
+    char *start = concat_left("new ", $2);
+    char *args = concat_around("(", $4, ")");
+    $$ = concat_two(start, args);
+}
+
 %%
 /* CODE C */
 
 void yyerror(const char*s)
 {
-  fprintf(stderr,"%s\n",s);
+    fprintf(stderr, "%d\n", yylineno);
+    fprintf(stderr,"%s\n",s);
 }
 
 #include "lex.yy.c"
 int main() {
     //yydebug = 1;
-  yyparse();
-  //ptr_stack_free_all();
-  return 1;
+    yyparse();
+    //ptr_stack_free_all();
+    return 1;
 }

@@ -1,15 +1,26 @@
 alpha_first [a-zA-Z_]
-alpha [a-zA-Z1-9_]
-digit [0-9_\.]
+alpha [a-zA-Z0-9_]
+digit [0-9_]
 hexa [0-9a-fA-F]
 
+%x COMMENT
+
+%option yylineno
+
 %%
+
+"/*" {BEGIN(COMMENT);}
+<COMMENT>"*/" {BEGIN(INITIAL);}
+<COMMENT>\n {;}
+<COMMENT>. {;}
+
+"//".* {;}
 
 "let" {return(LET);}
 "const" {return(CONST);}
 "," {return(CMM);}
 ";" {return(SMC);}
-%{//"." {return(DOT);}%}
+"." {return(DOT);}
 ":" {return(TDOTS);}
 "?" {return(QUESTION);}
 
@@ -27,6 +38,9 @@ hexa [0-9a-fA-F]
 "static" {return(STATIC);}
 "this" {return(THIS);}
 "new" {return(NEW);}
+
+"null" {return(NUL);}
+"undefined" {return(UNDEFINED);}
 
 "function" {return(FUNCTION);}
 "return" {return(RETURN);}
@@ -81,16 +95,14 @@ hexa [0-9a-fA-F]
 "for" {return(FOR);}
 "switch" {return(SWITCH);}
 "case" {return(CASE);}
+"default" {return(DEFAULT);}
 "while" {return(WHILE);}
 "do" {return(DO);}
 
-\/\/.* {;}
-\/\*(.*\n)*.*\*\/ {;}
 [ \t]* {;}
 [\n] {;}
 
 (["][^"]*["])|(['][^']*[']) {yylval.string_value = strdup(yytext); /*ptr_stack_add(yylval.string_value);*/ return(STR);}
-({digit}+)|(0x{hexa}+)|({digit}+)n {yylval.string_value = strdup(yytext); /*ptr_stack_add(yylval.string_value);*/ return(CST);}
-\.[ ]*#{alpha}+ {yylval.string_value = strdup(yytext); /*ptr_stack_add(yylval.string_value);*/ return(ID_CLSP);}
-\.[ ]*{alpha_first}{alpha}* {yylval.string_value = strdup(yytext); /*ptr_stack_add(yylval.string_value);*/ return(ID_CLS);}
-{alpha_first}{alpha}* {yylval.string_value = strdup(yytext); /*ptr_stack_add(yylval.string_value);*/ return(ID_LET);}
+#{alpha_first}{alpha}* {yylval.string_value = strdup(yytext); /*ptr_stack_add(yylval.string_value);*/ return(ID_PRIV);}
+{alpha_first}{alpha}* {yylval.string_value = strdup(yytext); /*ptr_stack_add(yylval.string_value);*/ return(ID);}
+({digit}+)|({digit}*)\.({digit}+)|(0x{hexa}+)|({digit}+)n {yylval.string_value = strdup(yytext); /*ptr_stack_add(yylval.string_value);*/ return(CST);}
